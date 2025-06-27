@@ -103,8 +103,19 @@ def question_1(df_balances):
 
     """
 
-    return default_rate_percent
+    # Find all of the LoanIDs where actual repayment is lees than the scheduled repayment
+    defaulted_loans = df_balances.groupby("LoanID").apply(
+        lambda group: (group["ActualRepayment"] < group ["ScheduledRepayment"]).any()
+    )
 
+    # Find the defaulted and total number of loans
+    num_defaulted = defaulted_loans.sum()
+    total_loans = defaulted_loans.shape[0]
+
+    # Calculate the percentage
+    default_rate_percent = (num_defaulted / total_loans) * 100
+
+    return default_rate_percent
 
 def question_2(df_scheduled, df_balances):
     """
