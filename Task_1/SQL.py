@@ -54,13 +54,18 @@ def question_3():
     There is only 1 loan per customer ID.
     """
 
-    qry = """SELECT LoanTerm,
-            ROUND(100.0 * SUM(IF(ApprovalStatus = 'Approved', 1, 0)) / COUNT(*),2) AS ApprovedPercentage
+    qry = """
+        WITH unique_loans AS (
+            SELECT DISTINCT CustomerID, LoanTerm, ApprovalStatus
             FROM loans
+        )
+        SELECT LoanTerm,
+            ROUND(100.0 * SUM(IF(ApprovalStatus = 'Approved', 1, 0)) / COUNT(*),2) AS ApprovedPercentage
+            FROM unique_loans
             GROUP BY LoanTerm
             ORDER BY LoanTerm"""
 
-    # There are once again duplicate entries in the table. Therefore, 
+    # There are once again duplicate entries in the table. Therefore, by starting the query to first select all of the loans with only 1 of the duplicate selected, the percentage can be calculated without double counting the duplicate entries
     
     return qry
 
@@ -71,7 +76,15 @@ def question_4():
     Return columns `CustomerClass` and `Count`
     """
 
-    qry = """____________________"""
+    qry = """
+        WITH unique_credit AS (
+            SELECT DISTINCT CustomerID, CustomerClass
+            FROM credit
+        )
+        SELECT CustomerClass, Count(*) AS Count
+            FROM unique_credit
+            GROUP BY CustomerClass
+            ORDER BY Count DESC"""
 
     return qry
 
@@ -81,6 +94,8 @@ def question_5():
     Make use of the UPDATE function to amend/fix the following: Customers with a CreditScore between and including 600 to 650 must be classified as CustomerClass C.
     """
 
-    qry = """____________________"""
+    qry = """UPDATE credit
+            SET CustomerClass = 'C'
+            WHERE CreditScore BETWEEN 600 AND 650;"""
 
     return qry
