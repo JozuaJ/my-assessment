@@ -23,7 +23,10 @@ def question_1():
     Return the `Name`, `Surname` and `CustomerID`
     """
 
-    qry = """____________________"""
+    qry = """SELECT Name, Surname, CustomerID 
+            FROM customers
+            GROUP BY Name, Surname, CustomerID
+            HAVING COUNT(CustomerID) > 1"""
 
     return qry
 
