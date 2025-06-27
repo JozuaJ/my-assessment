@@ -130,6 +130,27 @@ def question_2(df_scheduled, df_balances):
 
     """
 
+    # Assign Year1 (months 1–12) or Year2 (months 13–24), since all loans have a loan term of 2 years
+    df_balances["Year"] = df_balances["Month"].apply(lambda m: 1 if m <= 12 else 2)
+
+    # Group by LoanID and Year to compute total scheduled and actual repayments
+    grouped = df_balances.groupby(["LoanID", "Year"]).agg({
+        "ScheduledRepayment": "sum",
+        "ActualRepayment": "sum"
+    }).reset_index()
+
+    # Calculate unpaid percentage
+    grouped["PercentUnpaid"] = (grouped["ScheduledRepayment"] - grouped["ActualRepayment"]) / grouped["ScheduledRepayment"]
+
+    # Type 2 default if unpaid percentage > 15%
+    grouped["Type2DefaultYear"] = grouped["PercentUnpaid"] > 0.15
+
+    # A loan defaults if any of its years has a Type 2 default
+    loan_defaults = grouped.groupby("LoanID")["Type2DefaultYear"].any()
+
+    # Compute default rate
+    default_rate_percent = (loan_defaults.sum() / loan_defaults.count()) * 100
+
     return default_rate_percent
 
 
