@@ -88,16 +88,6 @@ def question_3():
     """
 
     qry = """
-        CREATE TABLE financing(
-            CustomerID VARCHAR(255),
-            Income DECIMAL(10,2),
-            LoanAmount DECIMAL(10,2),
-            LoanTerm INT,
-            InterestRate DECIMAL(5,2),
-            ApprovalStatus VARCHAR(50),
-            CreditScore INT
-        );
-    
         INSERT INTO financing
         SELECT DISTINCT
             c.CustomerID,
@@ -127,7 +117,9 @@ def question_4():
     Hint: there should be 12x CustomerID = 1.
     """
 
-    qry = """____________________"""
+    qry = """
+
+    """
 
     return qry
 
