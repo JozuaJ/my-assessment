@@ -54,8 +54,14 @@ def question_3():
     There is only 1 loan per customer ID.
     """
 
-    qry = """____________________"""
+    qry = """SELECT LoanTerm,
+            ROUND(100.0 * SUM(IF(ApprovalStatus = 'Approved', 1, 0)) / COUNT(*),2) AS ApprovedPercentage
+            FROM loans
+            GROUP BY LoanTerm
+            ORDER BY LoanTerm"""
 
+    # There are once again duplicate entries in the table. Therefore, 
+    
     return qry
 
 
