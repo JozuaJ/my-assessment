@@ -22,8 +22,22 @@ def question_1():
     Make use of a JOIN to find the `AverageIncome` per `CustomerClass`
     """
 
-    qry = """____________________"""
+    qry = """
+        WITH unique_customers AS (
+            SELECT DISTINCT CustomerID, Income
+            FROM customers
+        ),
+        unique_credit AS (
+            SELECT DISTINCT CustomerID, CustomerClass
+            FROM credit
+        )
+        SELECT cr.CustomerClass, ROUND(AVG(cu.Income),2) AS AverageIncome
+            FROM unique_credit AS cr
+            INNER JOIN unique_customers cu ON cr.CustomerID = cu.CustomerID
+            GROUP BY cr.CustomerClass"""
 
+    # Since the database has duplicate entries for both tables, I selected the tables once again so that only 1 of the duplicate entries is used.
+    
     return qry
 
 
@@ -33,8 +47,35 @@ def question_2():
     Ensure consistent use of either the abbreviated or full version of each province, matching the format found in the customer table.
     """
 
-    qry = """____________________"""
+    qry = """
+        WITH unique_customers AS (
+            SELECT DISTINCT CustomerID,
+                CASE
+                    WHEN Region = 'EasternCape' THEN 'EC'
+                    WHEN Region = 'WesternCape' THEN 'WC'
+                    WHEN Region = 'NorthernCape' THEN 'NC'
+                    WHEN Region = 'FreeState' THEN 'FS'
+                    WHEN Region = 'KwaZulu-Natal' THEN 'KZN'
+                    WHEN Region = 'Gauteng' THEN 'GT'
+                    WHEN Region = 'Limpopo' THEN 'LP'
+                    WHEN Region = 'Mpumalanga' THEN 'MP'
+                    WHEN Region = 'NorthWest' THEN 'NW'
+                    ELSE Region
+                END AS StandardizedRegion
+            FROM customers
+        ),
+        unique_loans AS (
+            SELECT DISTINCT CustomerID, ApprovalStatus
+            FROM loans
+        )
+        SELECT c.StandardizedRegion, COUNT(*) AS RejectedApplications
+        FROM unique_loans AS l
+        INNER JOIN unique_customers c ON l.CustomerID = c.CustomerID
+        WHERE l.ApprovalStatus = 'Rejected'
+        GROUP BY c.StandardizedRegion"""
 
+    # I standardised the Regions/Provinces to the abbreviations. I noticed that the North West province only had the abbreviated version, however I included it into the code for in case it is needed in the future
+    
     return qry
 
 

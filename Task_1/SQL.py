@@ -86,6 +86,8 @@ def question_4():
             GROUP BY CustomerClass
             ORDER BY Count DESC"""
 
+    # There are once again duplicate entries in this table, so I first created a clean table before querying it as before
+    
     return qry
 
 
