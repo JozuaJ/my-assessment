@@ -87,7 +87,29 @@ def question_3():
     Do not return the new table, just create it.
     """
 
-    qry = """____________________"""
+    qry = """
+        CREATE TABLE financing(
+            CustomerID VARCHAR(255),
+            Income DECIMAL(10,2),
+            LoanAmount DECIMAL(10,2),
+            LoanTerm INT,
+            InterestRate DECIMAL(5,2),
+            ApprovalStatus VARCHAR(50),
+            CreditScore INT
+        );
+    
+        INSERT INTO financing
+        SELECT DISTINCT
+            c.CustomerID,
+            c.Income,
+            l.LoanAmount,
+            l.LoanTerm,
+            l.InterestRate,
+            l.ApprovalStatus,
+            cr.CreditScore
+        FROM customers c
+        INNER JOIN loans l ON c.CustomerID = l.CustomerID
+        INNER JOIN credit cr ON c.CustomerID = cr.CustomerID"""
 
     return qry
 
