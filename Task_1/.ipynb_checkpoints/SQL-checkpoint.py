@@ -36,8 +36,14 @@ def question_2():
     Return the `Name`, `Surname` and `Income` of all female customers in the dataset in descending order of income
     """
 
-    qry = """____________________"""
+    qry = """SELECT DISTINCT Name, Surname, Income
+            FROM customers
+            WHERE Gender = 'Male'
+            ORDER BY Income DESC;
+            """
 
+    
+    
     return qry
 
 
