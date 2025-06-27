@@ -168,6 +168,28 @@ def question_3(df_balances):
         float: The anualized CPR of the loan portfolio as a percent.
 
     """
+    
+    # Step 1: Calculate Scheduled Principal and Actual Principal
+    df = df_balances.copy()
+
+    df["ScheduledPrincipal"] = df["ScheduledRepayment"] - df["InterestPayment"]
+    df["ActualPrincipal"] = df["LoanBalanceStart"] - df["LoanBalanceEnd"]
+    df["UnscheduledPrincipal"] = df["ActualPrincipal"] - df["ScheduledPrincipal"]
+
+    # Step 2: Calculate SMM, only where LoanBalanceStart > 0 to avoid div by 0
+    df = df[df["LoanBalanceStart"] > 0]
+    df["SMM"] = df["UnscheduledPrincipal"] / df["LoanBalanceStart"]
+
+    # Step 3: Filter out invalid SMM values (e.g., negative or nan)
+    df = df[df["SMM"].notna() & (df["SMM"] >= 0)]
+
+    # Step 4: Geometric mean of (1 + SMM)
+    smm_product = np.prod(1 + df["SMM"])
+    smm_mean = smm_product**(1 / len(df)) - 1
+
+    # Step 5: Convert to CPR
+    cpr = 1 - (1 - smm_mean)**12
+    cpr_percent = cpr * 100
 
     return cpr_percent
 
@@ -187,5 +209,25 @@ def question_4(df_balances):
         float: The predicted total loss for the second year in the loan term.
 
     """
+
+    # Step 1: Use question_2 to get probability of default
+    from your_module import question_2  # Replace 'your_module' if needed
+    import pandas as pd
+
+    root = os.getcwd()
+    df_scheduled = pd.read_csv(root + "/data/scheduled_loan_repayments.csv")
+    pd_percent = question_2(df_scheduled, df_balances)
+    pd_decimal = pd_percent / 100
+
+    # Step 2: Get total loan balance exposure in second year (months 13–24)
+    year_2_balances = df_balances[df_balances["Month"] > 12]
+    total_exposure = year_2_balances["LoanBalanceStart"].sum()
+
+    # Step 3: Recovery rate
+    recovery_rate = 0.80
+    lgd = 1 - recovery_rate
+
+    # Step 4: Predicted loss
+    total_loss = pd_decimal * total_exposure * lgd
 
     return total_loss
