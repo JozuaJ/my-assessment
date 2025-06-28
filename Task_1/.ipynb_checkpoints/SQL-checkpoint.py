@@ -23,10 +23,15 @@ def question_1():
     Return the `Name`, `Surname` and `CustomerID`
     """
 
-    qry = """SELECT Name, Surname, CustomerID 
-            FROM customers
-            GROUP BY Name, Surname, CustomerID
-            HAVING COUNT(CustomerID) > 1"""
+
+    qry = """
+        SELECT Name, Surname, CustomerID 
+        FROM customers
+        GROUP BY Name, Surname, CustomerID
+        HAVING COUNT(CustomerID) > 1
+        """
+
+    # In this query, I simply select the required columns where the CustomerIDs appear more than once. The solution makes sense as it retrieves 14 entries, out of the 1014 entries in the table, and the CustomerIDs go to 1000. Also, running a quick check, all the duplicate customer ids have the entire entry duplicated.
 
     return qry
 
@@ -36,13 +41,14 @@ def question_2():
     Return the `Name`, `Surname` and `Income` of all female customers in the dataset in descending order of income
     """
 
-    qry = """SELECT DISTINCT Name, Surname, Income
-            FROM customers
-            WHERE Gender = 'Male'
-            ORDER BY Income DESC;
-            """
+    qry = """
+        SELECT DISTINCT Name, Surname, Income
+        FROM customers
+        WHERE Gender = 'Female'
+        ORDER BY Income DESC
+        """
 
-    # By using DISTINCT in this case, I only select 1 of the duplicated rows, instead of both for all the duplicated entries
+    # I used DISTINCT to remove any duplicate rows in the result
     
     return qry
 
@@ -63,9 +69,11 @@ def question_3():
             ROUND(100.0 * SUM(IF(ApprovalStatus = 'Approved', 1, 0)) / COUNT(*),2) AS ApprovedPercentage
             FROM unique_loans
             GROUP BY LoanTerm
-            ORDER BY LoanTerm"""
+            ORDER BY LoanTerm
+        """
 
-    # There are once again duplicate entries in the table. Therefore, by starting the query to first select all of the loans with only 1 of the duplicate selected, the percentage can be calculated without double counting the duplicate entries
+    # There are once again duplicate entries in the table. So, I created a temporary table with all the unique entries first, before doing the calculations.
+    # Doing the same checks as above, the duplicate entries are entirely duplicated, so there won't be any problems with entries with the same CustomerIDs being slightly different
     
     return qry
 
@@ -84,9 +92,10 @@ def question_4():
         SELECT CustomerClass, Count(*) AS Count
             FROM unique_credit
             GROUP BY CustomerClass
-            ORDER BY Count DESC"""
+            ORDER BY Count DESC
+        """
 
-    # There are once again duplicate entries in this table, so I first created a clean table before querying it as before
+    # Similar to before, there are duplicate entries in the credit table.
     
     return qry
 
@@ -96,8 +105,10 @@ def question_5():
     Make use of the UPDATE function to amend/fix the following: Customers with a CreditScore between and including 600 to 650 must be classified as CustomerClass C.
     """
 
-    qry = """UPDATE credit
-            SET CustomerClass = 'C'
-            WHERE CreditScore BETWEEN 600 AND 650;"""
+    qry = """
+        UPDATE credit
+        SET CustomerClass = 'C'
+        WHERE CreditScore BETWEEN 600 AND 650
+        """
 
     return qry
