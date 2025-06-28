@@ -118,10 +118,28 @@ def question_4():
     """
 
     qry = """
-
-    """
+        CREATE TABLE timeline AS
+        SELECT
+            c.CustomerID,
+            m.MonthName,
+            COALESCE(COUNT(r.RepaymentID),0) AS NumberOfRepayments,
+            COALESCE(ROUND(SUM(r.Amount), 2), 0) AS AmountTotal,
+        FROM
+            customers c
+        CROSS JOIN
+            months m
+        LEFT JOIN
+            repayments r ON r.CustomerID = c.CustomerID
+            AND strftime('%m', r.RepaymentDate) = printf('%02d', m.MonthID)
+            AND EXTRACT(hour FROM timezone('Europe/London', r.RepaymentDate AT TIME ZONE r.Timezone)) BETWEEN 6 AND 18
+        GROUP BY
+            c.CustomerID, m.MonthName, m.MonthID
+        ORDER BY
+            c.CustomerID, m.MonthID"""
 
     return qry
+
+# I am unsure why some entries are double counted, and why the amounts are not being rounded to 2 decimal places
 
 
 def question_5():
@@ -133,7 +151,48 @@ def question_5():
     Hint: there should be 1x CustomerID = 1
     """
 
-    qry = """____________________"""
+    qry = """        
+        SELECT
+            CustomerID,
+            -- January
+            SUM(CASE WHEN MonthName = 'January' THEN NumberOfRepayments ELSE 0 END) AS JanuaryRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'January' THEN AmountTotal ELSE 0 END), 2) AS JanuaryTotal,
+            -- February
+            SUM(CASE WHEN MonthName = 'February' THEN NumberOfRepayments ELSE 0 END) AS FebruaryRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'February' THEN AmountTotal ELSE 0 END), 2) AS FebruaryTotal,
+            -- March
+            SUM(CASE WHEN MonthName = 'March' THEN NumberOfRepayments ELSE 0 END) AS MarchRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'March' THEN AmountTotal ELSE 0 END), 2) AS MarchTotal,
+            -- April
+            SUM(CASE WHEN MonthName = 'April' THEN NumberOfRepayments ELSE 0 END) AS AprilRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'April' THEN AmountTotal ELSE 0 END), 2) AS AprilTotal,
+            -- May
+            SUM(CASE WHEN MonthName = 'May' THEN NumberOfRepayments ELSE 0 END) AS MayRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'May' THEN AmountTotal ELSE 0 END), 2) AS MayTotal,
+            -- June
+            SUM(CASE WHEN MonthName = 'June' THEN NumberOfRepayments ELSE 0 END) AS JuneRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'June' THEN AmountTotal ELSE 0 END), 2) AS JuneTotal,
+            -- July
+            SUM(CASE WHEN MonthName = 'July' THEN NumberOfRepayments ELSE 0 END) AS JulyRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'July' THEN AmountTotal ELSE 0 END), 2) AS JulyTotal,
+            -- August
+            SUM(CASE WHEN MonthName = 'August' THEN NumberOfRepayments ELSE 0 END) AS AugustRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'August' THEN AmountTotal ELSE 0 END), 2) AS AugustTotal,
+            -- September
+            SUM(CASE WHEN MonthName = 'September' THEN NumberOfRepayments ELSE 0 END) AS SeptemberRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'September' THEN AmountTotal ELSE 0 END), 2) AS SeptemberTotal,
+            -- October
+            SUM(CASE WHEN MonthName = 'October' THEN NumberOfRepayments ELSE 0 END) AS OctoberRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'October' THEN AmountTotal ELSE 0 END), 2) AS OctoberTotal,
+            -- November
+            SUM(CASE WHEN MonthName = 'November' THEN NumberOfRepayments ELSE 0 END) AS NovemberRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'November' THEN AmountTotal ELSE 0 END), 2) AS NovemberTotal,
+            -- December
+            SUM(CASE WHEN MonthName = 'December' THEN NumberOfRepayments ELSE 0 END) AS DecemberRepayments,
+            ROUND(SUM(CASE WHEN MonthName = 'December' THEN AmountTotal ELSE 0 END), 2) AS DecemberTotal
+        FROM timeline
+        GROUP BY CustomerID
+        ORDER BY CustomerID"""
 
     return qry
 
@@ -154,7 +213,43 @@ def question_6():
     Also return a result set for this table (ie SELECT * FROM corrected_customers)
     """
 
-    qry = """____________________"""
+    qry = """
+        CREATE TABLE corrected_customers AS
+        WITH cleaned_customers AS (
+            SELECT DISTINCT CustomerID, Age, Gender
+            FROM customers
+        ),
+        numbered AS (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY Gender ORDER BY CustomerID) AS rn
+            FROM cleaned_customers
+        ),
+        counted AS (
+            SELECT Gender, COUNT(*) AS total_rows
+            FROM numbered
+            GROUP BY Gender
+        ),
+        with_loop AS (
+            SELECT n.CustomerID,
+                   n.Age,
+                   n.Gender,
+                   (n.rn + 2 - 1) % c.total_rows + 1 AS target_rn
+            FROM numbered n
+            JOIN counted c ON n.Gender = c.Gender
+        ),
+        final AS (
+            SELECT w.CustomerID,
+                   n.Age AS OriginalAge,
+                   n2.Age AS CorrectedAge,
+                   n.Gender
+            FROM with_loop w
+            JOIN numbered n ON w.CustomerID = n.CustomerID
+            JOIN numbered n2 ON w.Gender = n2.Gender AND w.target_rn = n2.rn
+        )
+        SELECT CustomerID, OriginalAge AS Age, CorrectedAge, Gender
+        FROM final;
+        
+        SELECT * FROM corrected_customers"""
 
     return qry
 
@@ -175,6 +270,35 @@ def question_7():
     Return columns: `CustomerID`, `Age`, `CorrectedAge`, `Gender`, `AgeCategory`, `Rank`
     """
 
-    qry = """____________________"""
+    qry = """
+        SELECT 
+            c.CustomerID,
+            c.Age,
+            c.CorrectedAge,
+            c.Gender,
+            
+            CASE 
+                WHEN c.CorrectedAge < 20 THEN 'Teen'
+                WHEN c.CorrectedAge < 30 THEN 'Young Adult'
+                WHEN c.CorrectedAge < 60 THEN 'Adult'
+                ELSE 'Pensioner'
+            END AS AgeCategory,
+            
+            DENSE_RANK() OVER (
+                PARTITION BY 
+                    CASE 
+                        WHEN c.CorrectedAge < 20 THEN 'Teen'
+                        WHEN c.CorrectedAge < 30 THEN 'Young Adult'
+                        WHEN c.CorrectedAge < 60 THEN 'Adult'
+                        ELSE 'Pensioner'
+                    END
+                ORDER BY 
+                    COUNT(r.RepaymentID) DESC
+            ) AS Rank
+    
+        FROM corrected_customers c
+        LEFT JOIN repayments r ON c.CustomerID = r.CustomerID
+        GROUP BY 
+            c.CustomerID, c.Age, c.CorrectedAge, c.Gender"""
 
     return qry
