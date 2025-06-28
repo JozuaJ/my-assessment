@@ -34,9 +34,11 @@ def question_1():
         SELECT cr.CustomerClass, ROUND(AVG(cu.Income),2) AS AverageIncome
             FROM unique_credit AS cr
             INNER JOIN unique_customers cu ON cr.CustomerID = cu.CustomerID
-            GROUP BY cr.CustomerClass"""
+            GROUP BY cr.CustomerClass
+        """
 
-    # Since the database has duplicate entries for both tables, I selected the tables once again so that only 1 of the duplicate entries is used.
+    # Since the database has duplicate entries for both tables, I first created temporary tables which doesn't have the duplicated entries.
+    # I then calculated the average income per CustomerClass, rounding to 2 decimal places.
     
     return qry
 
@@ -72,9 +74,11 @@ def question_2():
         FROM unique_loans AS l
         INNER JOIN unique_customers c ON l.CustomerID = c.CustomerID
         WHERE l.ApprovalStatus = 'Rejected'
-        GROUP BY c.StandardizedRegion"""
+        GROUP BY c.StandardizedRegion
+        """
 
-    # I standardised the Regions/Provinces to the abbreviations. I noticed that the North West province only had the abbreviated version, however I included it into the code for in case it is needed in the future
+    # In this case while cleaning the data, since there are duplicate entries, I also standardised the Regions / Provinces to the abbreviated version.
+    # I noticed that the North West provice only had the abbreviated version, however, I still included it since it could just be pure chance that there are no rejected applications with the full name as the Region.
     
     return qry
 
@@ -88,6 +92,16 @@ def question_3():
     """
 
     qry = """
+        CREATE TABLE financing (
+            CustomerID TEXT,
+            Income REAL,
+            LoanAmount REAL,
+            LoanTerm INTEGER,
+            InterestRate REAL,
+            ApprovalStatus TEXT,
+            CreditScore INTEGER
+        );
+        
         INSERT INTO financing
         SELECT DISTINCT
             c.CustomerID,
@@ -99,7 +113,12 @@ def question_3():
             cr.CreditScore
         FROM customers c
         INNER JOIN loans l ON c.CustomerID = l.CustomerID
-        INNER JOIN credit cr ON c.CustomerID = cr.CustomerID"""
+        INNER JOIN credit cr ON c.CustomerID = cr.CustomerID
+        """
+
+    # I answer this question in 2 steps:
+    # Step 1 is to create a new table called fianncing with the appropriate schema.
+    # Step 2 is to populate the table by joining the relevant tables and removing the duplicates as before.
 
     return qry
 
@@ -119,27 +138,34 @@ def question_4():
 
     qry = """
         CREATE TABLE timeline AS
+        WITH unique_customers AS (
+            SELECT DISTINCT *
+            FROM customers
+        )
         SELECT
             c.CustomerID,
             m.MonthName,
             COALESCE(COUNT(r.RepaymentID),0) AS NumberOfRepayments,
-            COALESCE(ROUND(SUM(r.Amount), 2), 0) AS AmountTotal,
-        FROM
-            customers c
-        CROSS JOIN
-            months m
+            COALESCE(ROUND(SUM(r.Amount), 2), 0) AS AmountTotal
+        FROM unique_customers c
+        CROSS JOIN months m
         LEFT JOIN
             repayments r ON r.CustomerID = c.CustomerID
-            AND strftime('%m', r.RepaymentDate) = printf('%02d', m.MonthID)
-            AND EXTRACT(hour FROM timezone('Europe/London', r.RepaymentDate AT TIME ZONE r.Timezone)) BETWEEN 6 AND 18
+            AND EXTRACT(MONTH FROM r.RepaymentDate AT TIME ZONE r.Timezone AT TIME ZONE 'Europe/London') = m.MonthID
+            AND EXTRACT(HOUR FROM r.RepaymentDate AT TIME ZONE r.Timezone AT TIME ZONE 'Europe/London') BETWEEN 6 AND 18
         GROUP BY
             c.CustomerID, m.MonthName, m.MonthID
         ORDER BY
-            c.CustomerID, m.MonthID"""
+            c.CustomerID, m.MonthID
+        """
+
+    # This query creates the table timeline and populates it with a summary of the customer repayments for each month.
+    # I started by once again cleaning the data in the customers table by removing the duplicates and avoid double counting.
+    # During the LEFT JOIN of the repayments table, I made sure to only select the entries where the repayments are made in that month, as well as between 6am and 6pm, after converting the timestamps from the local timezone to London Time.
+    # COALESCE fills all nulls with 0, and ROUND ensures that the amounts are rounded to 2 decimal places.
+    # However, during my checks, I found that the Amount values were not rounded to 2 decimals in the output, and I am unsure why.
 
     return qry
-
-# I am unsure why some entries are double counted, and why the amounts are not being rounded to 2 decimal places
 
 
 def question_5():
@@ -155,44 +181,48 @@ def question_5():
         SELECT
             CustomerID,
             -- January
-            SUM(CASE WHEN MonthName = 'January' THEN NumberOfRepayments ELSE 0 END) AS JanuaryRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'January' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS JanuaryRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'January' THEN AmountTotal ELSE 0 END), 2) AS JanuaryTotal,
             -- February
-            SUM(CASE WHEN MonthName = 'February' THEN NumberOfRepayments ELSE 0 END) AS FebruaryRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'February' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS FebruaryRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'February' THEN AmountTotal ELSE 0 END), 2) AS FebruaryTotal,
             -- March
-            SUM(CASE WHEN MonthName = 'March' THEN NumberOfRepayments ELSE 0 END) AS MarchRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'March' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS MarchRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'March' THEN AmountTotal ELSE 0 END), 2) AS MarchTotal,
             -- April
-            SUM(CASE WHEN MonthName = 'April' THEN NumberOfRepayments ELSE 0 END) AS AprilRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'April' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS AprilRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'April' THEN AmountTotal ELSE 0 END), 2) AS AprilTotal,
             -- May
-            SUM(CASE WHEN MonthName = 'May' THEN NumberOfRepayments ELSE 0 END) AS MayRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'May' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS MayRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'May' THEN AmountTotal ELSE 0 END), 2) AS MayTotal,
             -- June
-            SUM(CASE WHEN MonthName = 'June' THEN NumberOfRepayments ELSE 0 END) AS JuneRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'June' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS JuneRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'June' THEN AmountTotal ELSE 0 END), 2) AS JuneTotal,
             -- July
-            SUM(CASE WHEN MonthName = 'July' THEN NumberOfRepayments ELSE 0 END) AS JulyRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'July' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS JulyRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'July' THEN AmountTotal ELSE 0 END), 2) AS JulyTotal,
             -- August
-            SUM(CASE WHEN MonthName = 'August' THEN NumberOfRepayments ELSE 0 END) AS AugustRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'August' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS AugustRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'August' THEN AmountTotal ELSE 0 END), 2) AS AugustTotal,
             -- September
-            SUM(CASE WHEN MonthName = 'September' THEN NumberOfRepayments ELSE 0 END) AS SeptemberRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'September' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS SeptemberRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'September' THEN AmountTotal ELSE 0 END), 2) AS SeptemberTotal,
             -- October
-            SUM(CASE WHEN MonthName = 'October' THEN NumberOfRepayments ELSE 0 END) AS OctoberRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'October' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS OctoberRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'October' THEN AmountTotal ELSE 0 END), 2) AS OctoberTotal,
             -- November
-            SUM(CASE WHEN MonthName = 'November' THEN NumberOfRepayments ELSE 0 END) AS NovemberRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'November' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS NovemberRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'November' THEN AmountTotal ELSE 0 END), 2) AS NovemberTotal,
             -- December
-            SUM(CASE WHEN MonthName = 'December' THEN NumberOfRepayments ELSE 0 END) AS DecemberRepayments,
+            CAST(SUM(CASE WHEN MonthName = 'December' THEN NumberOfRepayments ELSE 0 END) AS INTEGER) AS DecemberRepayments,
             ROUND(SUM(CASE WHEN MonthName = 'December' THEN AmountTotal ELSE 0 END), 2) AS DecemberTotal
         FROM timeline
         GROUP BY CustomerID
-        ORDER BY CustomerID"""
+        ORDER BY CustomerID
+        """
+
+    # This query pivots the timeline table to display all information relating to a customerID into a wide format.
+    # Each row corresponds to one customer with monthly repayment counts and totals, which was calculated in the previous question. I made the query slightly more dynamic by adding all the values, if there were to appear more than 1 row for a given CustomerID and Month
 
     return qry
 
@@ -233,7 +263,8 @@ def question_6():
             SELECT n.CustomerID,
                    n.Age,
                    n.Gender,
-                   (n.rn + 2 - 1) % c.total_rows + 1 AS target_rn
+                   ((n.rn - 2 - 1 + c.total_rows) % c.total_rows) + 1 AS target_rn
+
             FROM numbered n
             JOIN counted c ON n.Gender = c.Gender
         ),
@@ -249,8 +280,18 @@ def question_6():
         SELECT CustomerID, OriginalAge AS Age, CorrectedAge, Gender
         FROM final;
         
-        SELECT * FROM corrected_customers"""
+        SELECT * FROM corrected_customers
+        ORDER BY CustomerID
+        """
 
+    # I answer this question in a number of steps:
+    # Step 1: Once again create a clean customers temporary table, by removing duplicate entries
+    # Step 2: Assign a row number to each customer within the gender groups. This row number acts as a consistent index for shifting
+    # Step 3: Create another temporary table that holds the total number of Males and Females in the table. This is used for wrap-around when shifting the ages.
+    # Step 4: In the with_loop temporary table I then move all of the ages 2 rows down (since they were moved 2 rows up during the conversion), wrapping the movement to the top when necessary
+    # Step 5: Join the original and shifted tables on gender and the calculated row number to match each customer with their corrected age.
+    # Step 6: Select the required information from the temporary table, final, to store in the created table corrected_customers
+    
     return qry
 
 
@@ -271,34 +312,40 @@ def question_7():
     """
 
     qry = """
+        WITH customer_repayments AS (
+            SELECT 
+                c.CustomerID,
+                c.Age,
+                c.CorrectedAge,
+                c.Gender,
+                CASE 
+                    WHEN c.CorrectedAge < 20 THEN 'Teen'
+                    WHEN c.CorrectedAge < 30 THEN 'Young Adult'
+                    WHEN c.CorrectedAge < 60 THEN 'Adult'
+                    ELSE 'Pensioner'
+                END AS AgeCategory,
+                COALESCE(COUNT(r.RepaymentID), 0) AS TotalRepayments
+            FROM corrected_customers c
+            LEFT JOIN repayments r ON c.CustomerID = r.CustomerID
+            GROUP BY c.CustomerID, c.Age, c.CorrectedAge, c.Gender
+        )
         SELECT 
-            c.CustomerID,
-            c.Age,
-            c.CorrectedAge,
-            c.Gender,
-            
-            CASE 
-                WHEN c.CorrectedAge < 20 THEN 'Teen'
-                WHEN c.CorrectedAge < 30 THEN 'Young Adult'
-                WHEN c.CorrectedAge < 60 THEN 'Adult'
-                ELSE 'Pensioner'
-            END AS AgeCategory,
-            
+            CustomerID,
+            Age,
+            CorrectedAge,
+            Gender,
+            AgeCategory,
             DENSE_RANK() OVER (
-                PARTITION BY 
-                    CASE 
-                        WHEN c.CorrectedAge < 20 THEN 'Teen'
-                        WHEN c.CorrectedAge < 30 THEN 'Young Adult'
-                        WHEN c.CorrectedAge < 60 THEN 'Adult'
-                        ELSE 'Pensioner'
-                    END
-                ORDER BY 
-                    COUNT(r.RepaymentID) DESC
+                PARTITION BY AgeCategory
+                ORDER BY TotalRepayments DESC
             ) AS Rank
-    
-        FROM corrected_customers c
-        LEFT JOIN repayments r ON c.CustomerID = r.CustomerID
-        GROUP BY 
-            c.CustomerID, c.Age, c.CorrectedAge, c.Gender"""
+        FROM customer_repayments
+        ORDER BY CustomerID;
+        """
+
+    # I answer this question in a number of steps:
+    # Step 1: Create a temporary table that joins the corrected_customers table with the repayments table. In this step also count the number of repayments per customer and classify them into AgeCategory based on Corrected Age.
+    # Step 2: COALESCE ensures that customers with no repayment has a 0 instead of null
+    # Step 3: Then select all the required information from the temporary table and apply DENSE_RANK within each AgeCategory based on the TotalRepayments. This ranking is done in a descreasing order.
 
     return qry
