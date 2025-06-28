@@ -232,7 +232,7 @@ def question_4(df_scheduled, df_balances):
     pd_percent = question_2(df_scheduled, df_balances)
     pd_decimal = pd_percent / 100
 
-    # Step 2: Only look at the total loan balance exposure in second year (months 13–24) and sum loan balances at start of each month
+    # Step 2: Get only the balances at the end of the first year, and calculate the total exposure by adding the loan balances at the end of the that month (i.e. the end of year 1 and the start of year 2)
     year_2_balances = df_balances[df_balances["Month"] == 12]
     total_exposure = year_2_balances["LoanBalanceEnd"].sum()
 
